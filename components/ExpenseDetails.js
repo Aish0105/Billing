@@ -1,146 +1,24 @@
-// "use client";
-// import { useState, useEffect } from "react";
-// import axios from "axios";
-
-// export default function ExpenseDetails({ projectId }) {
-//   const [expenses, setExpenses] = useState(null);
-//   const [extraExpenses, setExtraExpenses] = useState([]);
-
-//   useEffect(() => {
-//     setExtraExpenses([]);
-//     if (projectId) {
-//       axios
-//         .get(`/api/expenses/${projectId}`)
-//         .then((res) => {
-//           const expenseData = res.data;
-
-//           // Compute total expenses
-//           const totalExpense = expenseData.reduce(
-//             (sum, exp) => sum + parseFloat(exp.Amount),
-//             0
-//           );
-
-//           // Update state with the processed data
-//           setExpenses({ totalExpense });
-//         })
-//         .catch((err) => console.error("Error fetching expenses:", err));
-//     } else {
-//       setExpenses(null);
-//     }
-//   }, [projectId]);
-
-//   const handleAddExtraExpense = () =>
-//     setExtraExpenses([...extraExpenses, { title: "", amount: 0 }]);
-
-//   const handleExtraExpenseChange = (index, field, value) => {
-//     setExtraExpenses(
-//       extraExpenses.map((expense, i) =>
-//         i === index ? { ...expense, [field]: value } : expense
-//       )
-//     );
-//   };
-
-//   const handleRemoveExtraExpense = (index) =>
-//     setExtraExpenses(extraExpenses.filter((_, i) => i !== index));
-
-//   const getTotalExtraExpense = () =>
-//     extraExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-
-//   const grandTotal = (expenses?.totalExpense || 0) + getTotalExtraExpense();
-
-//   if (!projectId) return <p>Please select a project to see expenses.</p>;
-
-//   return (
-//     <div>
-//       <h1 className="text-lg font-medium mb-2">Expense Details</h1>
-//       {expenses ? (
-//         <div>
-//           <p className="font-bold">Total Expense: ₹{expenses.totalExpense}</p>
-
-//           {extraExpenses.map((expense, index) => (
-//             <div
-//               key={index}
-//               className="flex gap-2 mb-2 items-center border p-2 rounded"
-//             >
-//               <input
-//                 type="text"
-//                 placeholder="Expense Title"
-//                 value={expense.title}
-//                 onChange={(e) =>
-//                   handleExtraExpenseChange(index, "title", e.target.value)
-//                 }
-//                 className="p-2 border rounded flex-1"
-//               />
-//               <input
-//                 type="number"
-//                 placeholder="Amount"
-//                 value={expense.amount}
-//                 onChange={(e) =>
-//                   handleExtraExpenseChange(index, "amount", e.target.value)
-//                 }
-//                 className="p-2 border rounded w-24"
-//               />
-//               <button
-//                 onClick={() => handleRemoveExtraExpense(index)}
-//                 className="border p-2 rounded"
-//               >
-//                 ➖
-//               </button>
-//             </div>
-//           ))}
-
-//           <button
-//             onClick={handleAddExtraExpense}
-//             className="bg-blue-600 text-white p-2 rounded"
-//           >
-//             ➕ Add Extra Expense
-//           </button>
-//           <p className="text-lg font-medium">
-//             <strong>Grand Total Expense: ₹{grandTotal}</strong>
-//           </p>
-//         </div>
-//       ) : (
-//         <p>Loading expenses...</p>
-//       )}
-//     </div>
-//   );
-// }
-
-
-
-"use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-export default function ExpenseDetails({ projectId }) {
-  const [expenses, setExpenses] = useState(null);
+export default function ExpenseDetails({ projectId, setExpenseData }) {
+  const [expenses, setExpenses] = useState([]);
   const [extraExpenses, setExtraExpenses] = useState([]);
+  const [inventory, setInventory] = useState([]);
 
   useEffect(() => {
     setExtraExpenses([]);
     if (projectId) {
-      axios
-        .get(`/api/expenses/${projectId}`)
-        .then((res) => {
-          const expenseData = res.data;
-
-          // Compute total expenses
-          const totalExpense = expenseData.reduce(
-            (sum, exp) => sum + parseFloat(exp.Amount),
-            0
-          );
-
-          // Update state with the processed data
-          setExpenses({ totalExpense });
-        })
-        .catch((err) => console.error("Error fetching expenses:", err));
+      axios.get(`/api/expenses/${projectId}`).then((res) => setExpenses(res.data));
+      axios.get(`/api/inventory/${projectId}`).then((res) => setInventory(res.data));
     } else {
-      setExpenses(null);
+      setExpenses([]);
+      setInventory([]);
     }
   }, [projectId]);
 
   const handleAddExtraExpense = () =>
-    setExtraExpenses([...extraExpenses, { title: "", amount: 0 }]);
+    setExtraExpenses([...extraExpenses, { item: "", quantity: 1, unitPrice: 0 }]);
 
   const handleExtraExpenseChange = (index, field, value) => {
     setExtraExpenses(
@@ -154,64 +32,71 @@ export default function ExpenseDetails({ projectId }) {
     setExtraExpenses(extraExpenses.filter((_, i) => i !== index));
 
   const getTotalExtraExpense = () =>
-    extraExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+    extraExpenses.reduce((sum, expense) => sum + (expense.quantity * expense.unitPrice || 0), 0);
 
-  const grandTotal = (expenses?.totalExpense || 0) + getTotalExtraExpense();
+  const getTotalInventoryCost = () =>
+    inventory.reduce((sum, item) => sum + Number(item.total_cost || 0), 0);
 
-  if (!projectId) return <p>Please select a project to see expenses.</p>;
+  const totalExpense = expenses.reduce((sum, exp) => sum + parseFloat(exp.Amount), 0);
+  const grandTotal = totalExpense + getTotalExtraExpense() + getTotalInventoryCost();
+
+  useEffect(() => {
+    setExpenseData({ expenses, extraExpenses, inventory, totalExpense, grandTotal });
+  }, [expenses, extraExpenses, inventory]);
 
   return (
-    <div>
+    <div className="p-4 border rounded-lg shadow-md">
       <h1 className="text-lg font-medium mb-2">Expense Details</h1>
-      {expenses ? (
-        <div>
-          <p className="font-bold">Total Expense: ₹{expenses.totalExpense}</p>
+      <p className="font-bold text-red-600">Total Expense: ₹{totalExpense}</p>
+      <p className="font-bold text-green-600">Total Inventory Cost: ₹{getTotalInventoryCost()}</p>
 
+      <button
+        onClick={handleAddExtraExpense}
+        className="bg-blue-600 text-white p-2 rounded my-2"
+      >
+        ➕ Add Extra Expense
+      </button>
+
+      {extraExpenses.length > 0 && (
+        <div className="mt-4">
+          <h2 className="text-md font-medium">Extra Expenses</h2>
           {extraExpenses.map((expense, index) => (
-            <div
-              key={index}
-              className="flex gap-2 mb-2 items-center border p-2 rounded"
-            >
+            <div key={index} className="flex space-x-2 items-center mb-2">
               <input
                 type="text"
-                placeholder="Expense Title"
-                value={expense.title}
-                onChange={(e) =>
-                  handleExtraExpenseChange(index, "title", e.target.value)
-                }
-                className="p-2 border rounded flex-1"
+                placeholder="Item Name"
+                value={expense.item}
+                onChange={(e) => handleExtraExpenseChange(index, "item", e.target.value)}
+                className="border p-1"
               />
               <input
                 type="number"
-                placeholder="Amount"
-                value={expense.amount}
-                onChange={(e) =>
-                  handleExtraExpenseChange(index, "amount", e.target.value)
-                }
-                className="p-2 border rounded w-24"
+                placeholder="Qty"
+                value={expense.quantity}
+                onChange={(e) => handleExtraExpenseChange(index, "quantity", Number(e.target.value))}
+                className="border p-1 w-16"
+              />
+              <input
+                type="number"
+                placeholder="Unit Price"
+                value={expense.unitPrice}
+                onChange={(e) => handleExtraExpenseChange(index, "unitPrice", Number(e.target.value))}
+                className="border p-1 w-20"
               />
               <button
                 onClick={() => handleRemoveExtraExpense(index)}
-                className="border p-2 rounded"
+                className="bg-red-500 text-white p-1 rounded"
               >
-                ➖
+                ❌
               </button>
             </div>
           ))}
-
-          <button
-            onClick={handleAddExtraExpense}
-            className="bg-blue-600 text-white p-2 rounded"
-          >
-            ➕ Add Extra Expense
-          </button>
-          <p className="text-lg font-medium">
-            <strong>Grand Total Expense: ₹{grandTotal}</strong>
-          </p>
         </div>
-      ) : (
-        <p>Loading expenses...</p>
       )}
+
+      <p className="text-lg font-medium mt-4">
+        <strong>Grand Total Expense: ₹{grandTotal}</strong>
+      </p>
     </div>
   );
 }

@@ -1,41 +1,30 @@
-// pages/index.js
 'use client';
 import { useState } from 'react';
 import BillHeading from '../components/BillHeading';
 import ProjectDropdown from '../components/ProjectDropdown';
 import ExpenseDetails from '../components/ExpenseDetails';
-
-
-
-
+import  generatePDF  from '../components/pdfGenerator';
 
 export default function Home() {
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [expenseData, setExpenseData] = useState(null);
 
-  
-
-//   return (
-//     <div className="min-h-screen">
-//       <BillHeading />
-//       <div className="container mx-auto p-4">
-//         <ProjectDropdown onProjectSelect={setSelectedProjectId} />
-//         <ExpenseDetails projectId={selectedProjectId} />
-        
-
-//       </div>
-
-//     </div>
-    
-//   );
-// }
-
-return (
-  <div className="p-6 max-w-md mx-auto bg-white rounded-xl shadow-md space-y-4">
-    <BillHeading />
-
-    <h2 className="text-xl font-semibold">Invoice Generator</h2>
-    <ProjectDropdown onSelect={setSelectedProjectId} />
-    {selectedProjectId && <ExpenseDetails projectId={selectedProjectId} />}
-  </div>
-);
+  return (
+    <div className="p-6 w-full min-h-screen bg-white rounded-xl shadow-md space-y-4">
+      <BillHeading />
+      <h2 className="text-xl font-semibold">Invoice Generator</h2>
+      <ProjectDropdown onSelect={setSelectedProjectId} />
+      {selectedProjectId && (
+        <ExpenseDetails projectId={selectedProjectId} setExpenseData={setExpenseData} />
+      )}
+      {expenseData && (
+        <button
+          onClick={() => generatePDF(expenseData)}
+          className="bg-green-600 text-white p-3 rounded mt-4"
+        >
+          Download PDF
+        </button>
+      )}
+    </div>
+  );
 }

@@ -34,8 +34,10 @@
 import mysql from "mysql2/promise";
 
 export default async function handler(req, res) {
-    
-  if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
   const { projectId } = req.query;
   if (!projectId) {
     return res.status(400).json({ error: "Project ID is required" });
@@ -44,14 +46,29 @@ export default async function handler(req, res) {
   const dbConfig = {
     host: "localhost",
     user: "root",
-    password: "lovesql111*",
+    password: "lovesql111*",  // Ensure this is correct
     database: "company_db",
   };
 
   try {
     const connection = await mysql.createConnection(dbConfig);
-    const [projects] = await connection.execute( "SELECT Exp_ID, Date, Amount, Status, Comments FROM add_expenses WHERE pid = ?", 
-      [projectId]);
+
+    // Updated query to include Category
+    const [projects] = await connection.execute(
+      `SELECT 
+          e.Exp_ID, 
+          e.Date, 
+          e.Amount, 
+          e.Status, 
+          e.Comments, 
+          COALESCE(c.category_name, 'Uncategorized') AS Category
+       FROM add_expenses e
+       LEFT JOIN rates r ON e.id = r.item_id
+       LEFT JOIN category c ON r.category_id = c.category_id
+       WHERE e.pid = ?;`, 
+      [projectId]
+    );
+
     await connection.end();
 
     res.status(200).json(projects);
